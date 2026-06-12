@@ -26,7 +26,10 @@ Abrí http://localhost:3000. Sin credenciales de Meta/Kommo verás el badge **"D
 
 | Variable | Requerida | Descripción |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Para el chat | API key de Anthropic (console.anthropic.com) |
+| `ANTHROPIC_API_KEY` | Para el chat (opción A) | API key de Anthropic (console.anthropic.com) — mejor calidad de análisis |
+| `GEMINI_API_KEY` | Para el chat (opción B, **gratis**) | API key de Google AI Studio (aistudio.google.com), sin tarjeta |
+| `GEMINI_MODEL` | Opcional | Default `gemini-2.5-flash` |
+| `AI_PROVIDER` | Opcional | `anthropic` o `gemini` para forzar el proveedor si tenés ambas keys |
 | `META_ACCESS_TOKEN` | Opcional | Token de sistema con permiso `ads_read` |
 | `META_AD_ACCOUNT_ID` | Opcional | Cuenta publicitaria, ej. `act_1234567890` |
 | `GOOGLE_ADS_DEVELOPER_TOKEN` | Opcional | Token de desarrollador (API Center de Google Ads) |
