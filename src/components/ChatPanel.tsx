@@ -8,13 +8,14 @@ interface ChatMessage {
 }
 
 const SUGERENCIAS = [
-  "¿Cómo vienen las campañas este mes?",
-  "¿Qué campaña tiene el mejor ROAS?",
-  "¿Cuántos leads agendaron y cuántos asistieron?",
-  "¿Dónde estamos perdiendo pacientes en el funnel?",
+  "¿Cómo vienen las campañas en este período?",
+  "¿Qué conviene más: Meta o Google Ads?",
+  "¿Cuál es la rentabilidad real de la inversión?",
+  "¿Dónde estamos perdiendo pacientes en el embudo?",
+  "¿Cómo cierra la proyección de este mes?",
 ];
 
-export default function ChatPanel({ period }: { period: number }) {
+export default function ChatPanel({ from, to }: { from: string; to: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function ChatPanel({ period }: { period: number }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: historia, period }),
+        body: JSON.stringify({ messages: historia, from, to }),
       });
       if (!res.body) throw new Error("Sin respuesta");
 

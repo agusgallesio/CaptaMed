@@ -61,6 +61,7 @@ export async function fetchMetaCampaignData(
         id: row.campaign_id,
         nombre: row.campaign_name,
         estado: "ACTIVE",
+        plataforma: "meta",
         objetivo: "LEAD_GENERATION",
       });
     }

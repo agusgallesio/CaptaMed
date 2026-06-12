@@ -2,7 +2,7 @@ import type { Campaign, DailyCampaignMetric, Lead } from "@/lib/types";
 
 /**
  * Datos demo determinísticos (seed fijo) para vender/mostrar el producto
- * sin necesidad de credenciales de Meta ni Kommo.
+ * sin necesidad de credenciales de Meta, Google Ads ni Kommo.
  */
 
 // PRNG mulberry32 — determinístico para que la demo sea estable entre requests
@@ -17,23 +17,30 @@ function mulberry32(seed: number) {
 }
 
 export const DEMO_CAMPAIGNS: Campaign[] = [
-  { id: "c1", nombre: "Implantes Dentales — Conversiones", estado: "ACTIVE", objetivo: "LEAD_GENERATION" },
-  { id: "c2", nombre: "Ortodoncia Invisible — Tráfico + Form", estado: "ACTIVE", objetivo: "LEAD_GENERATION" },
-  { id: "c3", nombre: "Chequeo Médico Anual — Awareness", estado: "ACTIVE", objetivo: "LEAD_GENERATION" },
-  { id: "c4", nombre: "Estética Facial — Retargeting", estado: "ACTIVE", objetivo: "CONVERSIONS" },
-  { id: "c5", nombre: "Pacientes Inactivos — Remarketing", estado: "PAUSED", objetivo: "CONVERSIONS" },
+  { id: "m1", nombre: "Implantes Dentales — Conversiones", estado: "ACTIVE", plataforma: "meta", objetivo: "LEAD_GENERATION" },
+  { id: "m2", nombre: "Ortodoncia Invisible — Tráfico + Form", estado: "ACTIVE", plataforma: "meta", objetivo: "LEAD_GENERATION" },
+  { id: "m3", nombre: "Chequeo Médico Anual — Awareness", estado: "ACTIVE", plataforma: "meta", objetivo: "LEAD_GENERATION" },
+  { id: "m4", nombre: "Estética Facial — Retargeting", estado: "ACTIVE", plataforma: "meta", objetivo: "CONVERSIONS" },
+  { id: "m5", nombre: "Pacientes Inactivos — Remarketing", estado: "PAUSED", plataforma: "meta", objetivo: "CONVERSIONS" },
+  { id: "g1", nombre: "Búsqueda — Implantes Dentales", estado: "ACTIVE", plataforma: "google", objetivo: "SEARCH" },
+  { id: "g2", nombre: "Búsqueda — Urgencias Odontológicas", estado: "ACTIVE", plataforma: "google", objetivo: "SEARCH" },
+  { id: "g3", nombre: "PMax — Tratamientos Estéticos", estado: "ACTIVE", plataforma: "google", objetivo: "PERFORMANCE_MAX" },
 ];
 
 // Perfil de cada campaña: presupuesto diario, CPL aproximado y calidad del lead
 const PROFILES: Record<
   string,
-  { dailySpend: number; cpl: number; calidad: number; ticket: number; tratamientos: string[] }
+  { dailySpend: number; cpl: number; calidad: number; ticket: number; ctrBase: number; tratamientos: string[] }
 > = {
-  c1: { dailySpend: 95, cpl: 26, calidad: 0.62, ticket: 1500, tratamientos: ["Implante unitario", "Implantes múltiples", "All-on-4"] },
-  c2: { dailySpend: 70, cpl: 19, calidad: 0.55, ticket: 950, tratamientos: ["Ortodoncia invisible", "Brackets estéticos"] },
-  c3: { dailySpend: 45, cpl: 9, calidad: 0.42, ticket: 260, tratamientos: ["Chequeo anual", "Laboratorio completo"] },
-  c4: { dailySpend: 60, cpl: 16, calidad: 0.58, ticket: 560, tratamientos: ["Botox", "Rellenos", "Limpieza facial profunda"] },
-  c5: { dailySpend: 25, cpl: 11, calidad: 0.68, ticket: 420, tratamientos: ["Blanqueamiento", "Limpieza", "Control"] },
+  m1: { dailySpend: 95, cpl: 26, calidad: 0.62, ticket: 1500, ctrBase: 0.014, tratamientos: ["Implante unitario", "Implantes múltiples", "All-on-4"] },
+  m2: { dailySpend: 70, cpl: 19, calidad: 0.55, ticket: 950, ctrBase: 0.013, tratamientos: ["Ortodoncia invisible", "Brackets estéticos"] },
+  m3: { dailySpend: 45, cpl: 9, calidad: 0.42, ticket: 260, ctrBase: 0.016, tratamientos: ["Chequeo anual", "Laboratorio completo"] },
+  m4: { dailySpend: 60, cpl: 16, calidad: 0.58, ticket: 560, ctrBase: 0.018, tratamientos: ["Botox", "Rellenos", "Limpieza facial profunda"] },
+  m5: { dailySpend: 25, cpl: 11, calidad: 0.68, ticket: 420, ctrBase: 0.02, tratamientos: ["Blanqueamiento", "Limpieza", "Control"] },
+  // Google: menos volumen, mayor intención → CPL más alto pero mejor calidad
+  g1: { dailySpend: 55, cpl: 32, calidad: 0.74, ticket: 1600, ctrBase: 0.045, tratamientos: ["Implante unitario", "Implantes múltiples", "All-on-4"] },
+  g2: { dailySpend: 35, cpl: 21, calidad: 0.78, ticket: 380, ctrBase: 0.055, tratamientos: ["Urgencia odontológica", "Endodoncia", "Extracción"] },
+  g3: { dailySpend: 40, cpl: 18, calidad: 0.6, ticket: 600, ctrBase: 0.022, tratamientos: ["Botox", "Rellenos", "Blanqueamiento"] },
 };
 
 const NOMBRES = [
@@ -56,7 +63,7 @@ interface DemoDataset {
 let cache: DemoDataset | null = null;
 let cacheDay: string | null = null;
 
-/** Genera 90 días de historia hasta hoy. Cacheado por día de proceso. */
+/** Genera 365 días de historia hasta hoy. Cacheado por día de proceso. */
 export function getDemoDataset(): DemoDataset {
   const today = isoDate(new Date());
   if (cache && cacheDay === today) return cache;
@@ -67,7 +74,7 @@ export function getDemoDataset(): DemoDataset {
   let leadSeq = 1;
 
   const now = new Date();
-  for (let back = 89; back >= 0; back--) {
+  for (let back = 364; back >= 0; back--) {
     const d = new Date(now);
     d.setDate(d.getDate() - back);
     const date = isoDate(d);
@@ -76,19 +83,20 @@ export function getDemoDataset(): DemoDataset {
 
     for (const camp of DEMO_CAMPAIGNS) {
       if (camp.estado === "PAUSED" && back < 20) continue; // la pausada dejó de correr hace 20 días
+      if (camp.plataforma === "google" && back > 200) continue; // Google arrancó hace ~7 meses
       const p = PROFILES[camp.id];
       const spend = p.dailySpend * weekendFactor * (0.85 + rand() * 0.3);
       const cpl = p.cpl * (0.8 + rand() * 0.5);
       const dayLeads = Math.max(0, Math.round(spend / cpl + (rand() - 0.5) * 2));
-      const cpm = 6 + rand() * 5;
+      const cpm = camp.plataforma === "google" ? 18 + rand() * 14 : 6 + rand() * 5;
       const impressions = Math.round((spend / cpm) * 1000);
-      const ctr = 0.012 + rand() * 0.015;
+      const ctr = p.ctrBase * (0.8 + rand() * 0.5);
       const clicks = Math.round(impressions * ctr);
 
       metrics.push({ campaignId: camp.id, date, spend: round2(spend), impressions, clicks, leads: dayLeads });
 
       for (let i = 0; i < dayLeads; i++) {
-        const contactado = rand() < 0.82;
+        const contactado = rand() < 0.74 + p.calidad * 0.12;
         const agendado = contactado && rand() < 0.52 + p.calidad * 0.2;
         const asistio = agendado && rand() < 0.68;
         const cerrado = asistio && rand() < 0.45 + p.calidad * 0.3;
@@ -104,7 +112,7 @@ export function getDemoDataset(): DemoDataset {
 
         const tratamiento = p.tratamientos[Math.floor(rand() * p.tratamientos.length)];
         leads.push({
-          id: `L-${String(leadSeq++).padStart(4, "0")}`,
+          id: `L-${String(leadSeq++).padStart(5, "0")}`,
           nombre: NOMBRES[Math.floor(rand() * NOMBRES.length)],
           telefono: `+54 9 11 ${Math.floor(4000 + rand() * 5000)}-${Math.floor(1000 + rand() * 8999)}`,
           campaignId: camp.id,

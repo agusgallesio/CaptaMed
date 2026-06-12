@@ -5,10 +5,15 @@ import type {
   DashboardData,
   FunnelStage,
   Lead,
+  Plataforma,
+  PlatformSummary,
+  ProyeccionMes,
+  Rentabilidad,
   TrendPoint,
 } from "@/lib/types";
 import { getDemoDataset } from "./demo";
 import { fetchMetaCampaignData, isMetaConfigured } from "./meta";
+import { fetchGoogleCampaignData, isGoogleConfigured } from "./google";
 import { fetchKommoLeads, isKommoConfigured } from "./kommo";
 
 function isoDate(d: Date): string {
@@ -23,40 +28,152 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+interface Dataset {
+  campaigns: Campaign[];
+  metrics: DailyCampaignMetric[];
+  leads: Lead[];
+  fuente: DashboardData["fuente"];
+}
+
+/** Trae el dataset crudo (real si Meta+Kommo están configurados; Google es opcional). */
+async function getDataset(desde: string, hasta: string): Promise<Dataset> {
+  if (isMetaConfigured() && isKommoConfigured()) {
+    const meta = await fetchMetaCampaignData(desde, hasta);
+    let campaigns = meta.campaigns;
+    let metrics = meta.metrics;
+    if (isGoogleConfigured()) {
+      const google = await fetchGoogleCampaignData(desde, hasta);
+      campaigns = [...campaigns, ...google.campaigns];
+      metrics = [...metrics, ...google.metrics];
+    }
+    const sinceUnix = Math.floor(new Date(desde + "T00:00:00Z").getTime() / 1000);
+    const leads = (await fetchKommoLeads(sinceUnix)).filter(
+      (l) => l.createdAt >= desde && l.createdAt <= hasta,
+    );
+    return { campaigns, metrics, leads, fuente: "real" };
+  }
+  const demo = getDemoDataset();
+  return {
+    campaigns: demo.campaigns,
+    metrics: demo.metrics.filter((m) => m.date >= desde && m.date <= hasta),
+    leads: demo.leads.filter((l) => l.createdAt >= desde && l.createdAt <= hasta),
+    fuente: "demo",
+  };
+}
+
+function resumirCampaña(c: Campaign, metrics: DailyCampaignMetric[], leads: Lead[]): CampaignSummary {
+  const m = metrics.filter((x) => x.campaignId === c.id);
+  const ls = leads.filter((x) => x.campaignId === c.id);
+  const spend = round2(m.reduce((s, x) => s + x.spend, 0));
+  const impressions = m.reduce((s, x) => s + x.impressions, 0);
+  const clicks = m.reduce((s, x) => s + x.clicks, 0);
+  const nLeads = ls.length;
+  const rev = ls.reduce((s, x) => s + x.valor, 0);
+  return {
+    id: c.id,
+    nombre: c.nombre,
+    estado: c.estado,
+    plataforma: c.plataforma,
+    spend,
+    impressions,
+    clicks,
+    ctr: pct(clicks, impressions),
+    leads: nLeads,
+    cpl: nLeads > 0 ? round2(spend / nLeads) : 0,
+    agendados: ls.filter((x) => x.agendado).length,
+    asistieron: ls.filter((x) => x.asistio).length,
+    ganados: ls.filter((x) => x.status === "ganado").length,
+    perdidos: ls.filter((x) => x.status === "perdido").length,
+    abiertos: ls.filter((x) => x.status === "abierto").length,
+    revenue: rev,
+    roas: spend > 0 ? round2(rev / spend) : 0,
+  };
+}
+
+function resumirPlataforma(
+  plataforma: Plataforma,
+  campaigns: Campaign[],
+  metrics: DailyCampaignMetric[],
+  leads: Lead[],
+): PlatformSummary {
+  const ids = new Set(campaigns.filter((c) => c.plataforma === plataforma).map((c) => c.id));
+  const m = metrics.filter((x) => ids.has(x.campaignId));
+  const ls = leads.filter((x) => ids.has(x.campaignId));
+  const spend = round2(m.reduce((s, x) => s + x.spend, 0));
+  const impressions = m.reduce((s, x) => s + x.impressions, 0);
+  const clicks = m.reduce((s, x) => s + x.clicks, 0);
+  const rev = ls.reduce((s, x) => s + x.valor, 0);
+  return {
+    plataforma,
+    spend,
+    impressions,
+    clicks,
+    ctr: pct(clicks, impressions),
+    leads: ls.length,
+    cpl: ls.length > 0 ? round2(spend / ls.length) : 0,
+    agendados: ls.filter((x) => x.agendado).length,
+    asistieron: ls.filter((x) => x.asistio).length,
+    ganados: ls.filter((x) => x.status === "ganado").length,
+    revenue: rev,
+    roas: spend > 0 ? round2(rev / spend) : 0,
+  };
+}
+
+/** Proyección lineal del mes en curso según los días transcurridos. */
+async function proyectarMes(): Promise<ProyeccionMes> {
+  const hoy = new Date();
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const diasTotales = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+  const diasTranscurridos = hoy.getDate();
+
+  const { metrics, leads } = await getDataset(isoDate(inicioMes), isoDate(hoy));
+
+  const actual = {
+    leads: leads.length,
+    respondieron: leads.filter((l) => l.contactado).length,
+    agendados: leads.filter((l) => l.agendado).length,
+    asistieron: leads.filter((l) => l.asistio).length,
+    ganados: leads.filter((l) => l.status === "ganado").length,
+    inversion: round2(metrics.reduce((s, m) => s + m.spend, 0)),
+    ventaTotal: leads.reduce((s, l) => s + l.valor, 0),
+  };
+
+  const factor = diasTranscurridos > 0 ? diasTotales / diasTranscurridos : 0;
+  const proyectar = (n: number) => Math.round(n * factor);
+
+  return {
+    mes: `${MESES[hoy.getMonth()]} ${hoy.getFullYear()}`,
+    diasTranscurridos,
+    diasTotales,
+    actual,
+    proyectado: {
+      leads: proyectar(actual.leads),
+      respondieron: proyectar(actual.respondieron),
+      agendados: proyectar(actual.agendados),
+      asistieron: proyectar(actual.asistieron),
+      ganados: proyectar(actual.ganados),
+      inversion: round2(actual.inversion * factor),
+      ventaTotal: proyectar(actual.ventaTotal),
+    },
+  };
+}
+
 /**
  * Punto de entrada único para el dashboard y el chat con IA.
- * Usa Meta + Kommo si están configurados; si no, datos demo.
+ * Recibe un rango de fechas libre (YYYY-MM-DD, inclusive).
  */
-export async function getDashboardData(periodDays: number): Promise<DashboardData> {
-  const hasta = new Date();
-  const desde = new Date();
-  desde.setDate(desde.getDate() - (periodDays - 1));
-  const desdeStr = isoDate(desde);
-  const hastaStr = isoDate(hasta);
-
-  let campaigns: Campaign[];
-  let metrics: DailyCampaignMetric[];
-  let leads: Lead[];
-  let fuente: DashboardData["fuente"];
-
-  if (isMetaConfigured() && isKommoConfigured()) {
-    const meta = await fetchMetaCampaignData(desdeStr, hastaStr);
-    campaigns = meta.campaigns;
-    metrics = meta.metrics;
-    leads = await fetchKommoLeads(Math.floor(desde.getTime() / 1000));
-    fuente = "meta+kommo";
-  } else {
-    const demo = getDemoDataset();
-    campaigns = demo.campaigns;
-    metrics = demo.metrics.filter((m) => m.date >= desdeStr);
-    leads = demo.leads.filter((l) => l.createdAt >= desdeStr);
-    fuente = "demo";
-  }
+export async function getDashboardData(desde: string, hasta: string): Promise<DashboardData> {
+  const { campaigns, metrics, leads, fuente } = await getDataset(desde, hasta);
 
   // ---- KPIs globales ----
   const inversion = round2(metrics.reduce((s, m) => s + m.spend, 0));
   const totalLeads = leads.length;
-  const contactados = leads.filter((l) => l.contactado).length;
+  const respondieron = leads.filter((l) => l.contactado).length;
   const agendados = leads.filter((l) => l.agendado).length;
   const asistieron = leads.filter((l) => l.asistio).length;
   const ganados = leads.filter((l) => l.status === "ganado").length;
@@ -66,51 +183,42 @@ export async function getDashboardData(periodDays: number): Promise<DashboardDat
 
   const funnel: FunnelStage[] = [
     { etapa: "Leads", cantidad: totalLeads, tasaConversion: null },
-    { etapa: "Contactados", cantidad: contactados, tasaConversion: pct(contactados, totalLeads) },
-    { etapa: "Agendados", cantidad: agendados, tasaConversion: pct(agendados, contactados) },
+    { etapa: "Respondieron", cantidad: respondieron, tasaConversion: pct(respondieron, totalLeads) },
+    { etapa: "Agendaron", cantidad: agendados, tasaConversion: pct(agendados, respondieron) },
     { etapa: "Asistieron", cantidad: asistieron, tasaConversion: pct(asistieron, agendados) },
     { etapa: "Ganados", cantidad: ganados, tasaConversion: pct(ganados, asistieron) },
   ];
 
-  // ---- Resumen por campaña ----
-  const campaignSummaries: CampaignSummary[] = campaigns
-    .map((c) => {
-      const m = metrics.filter((x) => x.campaignId === c.id);
-      const ls = leads.filter((x) => x.campaignId === c.id);
-      const spend = round2(m.reduce((s, x) => s + x.spend, 0));
-      const impressions = m.reduce((s, x) => s + x.impressions, 0);
-      const clicks = m.reduce((s, x) => s + x.clicks, 0);
-      const nLeads = ls.length;
-      const rev = ls.reduce((s, x) => s + x.valor, 0);
-      return {
-        id: c.id,
-        nombre: c.nombre,
-        estado: c.estado,
-        spend,
-        impressions,
-        clicks,
-        ctr: pct(clicks, impressions),
-        leads: nLeads,
-        cpl: nLeads > 0 ? round2(spend / nLeads) : 0,
-        agendados: ls.filter((x) => x.agendado).length,
-        asistieron: ls.filter((x) => x.asistio).length,
-        ganados: ls.filter((x) => x.status === "ganado").length,
-        perdidos: ls.filter((x) => x.status === "perdido").length,
-        abiertos: ls.filter((x) => x.status === "abierto").length,
-        revenue: rev,
-        roas: spend > 0 ? round2(rev / spend) : 0,
-      };
-    })
+  const rentabilidad: Rentabilidad = {
+    ventaTotal: revenue,
+    inversion,
+    roDinero: round2(revenue - inversion),
+    roas: inversion > 0 ? round2(revenue / inversion) : 0,
+    roi: inversion > 0 ? round2(((revenue - inversion) / inversion) * 100) : 0,
+    ticketPromedio: ganados > 0 ? round2(revenue / ganados) : 0,
+    cpl: totalLeads > 0 ? round2(inversion / totalLeads) : 0,
+    costoPorAgenda: agendados > 0 ? round2(inversion / agendados) : 0,
+    costoPorAsistencia: asistieron > 0 ? round2(inversion / asistieron) : 0,
+    cac: ganados > 0 ? round2(inversion / ganados) : 0,
+  };
+
+  const porPlataforma = (["meta", "google"] as Plataforma[])
+    .map((p) => resumirPlataforma(p, campaigns, metrics, leads))
+    .filter((p) => p.spend > 0 || p.leads > 0);
+
+  const campaignSummaries = campaigns
+    .map((c) => resumirCampaña(c, metrics, leads))
     .filter((c) => c.spend > 0 || c.leads > 0)
     .sort((a, b) => b.spend - a.spend);
 
   // ---- Tendencia diaria ----
   const trendMap = new Map<string, TrendPoint>();
-  for (let i = 0; i < periodDays; i++) {
-    const d = new Date(desde);
-    d.setDate(d.getDate() + i);
-    const key = isoDate(d);
+  const cursor = new Date(desde + "T00:00:00Z");
+  const fin = new Date(hasta + "T00:00:00Z");
+  while (cursor <= fin) {
+    const key = isoDate(cursor);
     trendMap.set(key, { date: key, leads: 0, agendados: 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   for (const l of leads) {
     const p = trendMap.get(l.createdAt);
@@ -125,28 +233,44 @@ export async function getDashboardData(periodDays: number): Promise<DashboardDat
     .slice(0, 8);
 
   return {
-    periodDays,
-    desde: desdeStr,
-    hasta: hastaStr,
+    desde,
+    hasta,
     fuente,
     kpis: {
       inversion,
       leads: totalLeads,
-      cpl: totalLeads > 0 ? round2(inversion / totalLeads) : 0,
+      cpl: rentabilidad.cpl,
+      respondieron,
       agendados,
       asistieron,
       ganados,
       perdidos,
       abiertos,
+      tasaRespuesta: pct(respondieron, totalLeads),
       tasaAgendamiento: pct(agendados, totalLeads),
       tasaAsistencia: pct(asistieron, agendados),
       tasaCierre: pct(ganados, asistieron),
       revenue,
-      roas: inversion > 0 ? round2(revenue / inversion) : 0,
+      roas: rentabilidad.roas,
     },
+    rentabilidad,
+    porPlataforma,
     funnel,
     campaigns: campaignSummaries,
     trend: [...trendMap.values()],
     ultimosLeads,
+    proyeccionMes: await proyectarMes(),
   };
+}
+
+/** Valida y normaliza un rango de fechas; default: últimos 30 días. */
+export function parseRange(fromRaw: string | null, toRaw: string | null): { desde: string; hasta: string } {
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  const hoy = new Date();
+  let hasta = toRaw && re.test(toRaw) ? toRaw : isoDate(hoy);
+  const defaultDesde = new Date(hoy);
+  defaultDesde.setDate(defaultDesde.getDate() - 29);
+  let desde = fromRaw && re.test(fromRaw) ? fromRaw : isoDate(defaultDesde);
+  if (desde > hasta) [desde, hasta] = [hasta, desde];
+  return { desde, hasta };
 }

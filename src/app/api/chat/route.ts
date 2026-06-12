@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getDashboardData } from "@/lib/data/dashboard";
+import { getDashboardData, parseRange } from "@/lib/data/dashboard";
 import { SYSTEM_PROMPT, buildDataContext } from "@/lib/ai/context";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,8 @@ export const maxDuration = 120;
 
 interface ChatBody {
   messages: { role: "user" | "assistant"; content: string }[];
-  period?: number;
+  from?: string;
+  to?: string;
 }
 
 function textResponse(text: string, status = 200): Response {
@@ -35,8 +36,8 @@ export async function POST(req: NextRequest) {
     return textResponse("Solicitud inválida.", 400);
   }
 
-  const period = [7, 30, 90].includes(body.period ?? 30) ? body.period! : 30;
-  const data = await getDashboardData(period);
+  const { desde, hasta } = parseRange(body.from ?? null, body.to ?? null);
+  const data = await getDashboardData(desde, hasta);
 
   const client = new Anthropic();
   const stream = client.messages.stream({

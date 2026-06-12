@@ -9,7 +9,7 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
     <div className="space-y-2.5">
       {stages.map((s, i) => (
         <div key={s.etapa} className="flex items-center gap-3">
-          <span className="w-24 shrink-0 text-right text-sm text-slate-600">{s.etapa}</span>
+          <span className="w-28 shrink-0 text-right text-sm text-slate-600">{s.etapa}</span>
           <div className="h-7 flex-1 rounded-md bg-slate-100">
             <div
               className={`flex h-7 min-w-[2.5rem] items-center justify-end rounded-md pr-2 ${COLORES[i % COLORES.length]}`}
