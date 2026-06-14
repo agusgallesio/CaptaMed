@@ -7,6 +7,8 @@
  *  - GEMINI_MODEL: (opcional) default "gemini-2.5-flash"
  */
 
+import { getGeminiKey, getGeminiModel } from "./config";
+
 const BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 interface ChatMessage {
@@ -19,8 +21,8 @@ export async function streamGemini(
   system: string,
   messages: ChatMessage[],
 ): Promise<ReadableStream<Uint8Array>> {
-  const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
-  const url = `${BASE}/models/${model}:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
+  const model = getGeminiModel();
+  const url = `${BASE}/models/${model}:streamGenerateContent?alt=sse&key=${getGeminiKey()}`;
 
   const res = await fetch(url, {
     method: "POST",

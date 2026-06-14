@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAnthropicKey, getGeminiKey } from "@/lib/ai/config";
 
 export const dynamic = "force-dynamic";
 
@@ -7,8 +8,8 @@ export const dynamic = "force-dynamic";
  * Visitá /api/health en el navegador para verificar el deploy.
  */
 export async function GET() {
-  const anthropic = Boolean(process.env.ANTHROPIC_API_KEY);
-  const gemini = Boolean(process.env.GEMINI_API_KEY);
+  const anthropic = Boolean(getAnthropicKey());
+  const gemini = Boolean(getGeminiKey());
   return NextResponse.json({
     ok: true,
     ia: {
@@ -21,10 +22,10 @@ export async function GET() {
       kommo_configurada: Boolean(process.env.KOMMO_BASE_URL && process.env.KOMMO_ACCESS_TOKEN),
       google_ads_configurada: Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN),
     },
-    // Nombres de variables de entorno presentes que empiezan con GEMINI/ANTHROPIC
+    // Nombres de variables de entorno presentes que parecen de IA
     // (solo nombres, nunca valores) — útil para detectar nombres mal escritos
     variables_relacionadas_detectadas: Object.keys(process.env).filter((k) =>
-      /^(GEMINI|ANTHROPIC|AI_PROVIDER)/i.test(k),
+      /gemini|anthropic|claude|ai.?provider/i.test(k),
     ),
   });
 }

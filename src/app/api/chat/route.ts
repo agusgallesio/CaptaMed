@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getDashboardData, parseRange } from "@/lib/data/dashboard";
 import { SYSTEM_PROMPT, buildDataContext } from "@/lib/ai/context";
 import { streamGemini } from "@/lib/ai/gemini";
+import { getAnthropicKey, getGeminiKey, getForcedProvider } from "@/lib/ai/config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -17,11 +18,11 @@ type Provider = "anthropic" | "gemini" | null;
 
 /** Proveedor de IA: forzable con AI_PROVIDER, si no, el que tenga key. */
 function resolveProvider(): Provider {
-  const forced = process.env.AI_PROVIDER;
-  if (forced === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (forced === "gemini" && process.env.GEMINI_API_KEY) return "gemini";
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (process.env.GEMINI_API_KEY) return "gemini";
+  const forced = getForcedProvider();
+  if (forced === "anthropic" && getAnthropicKey()) return "anthropic";
+  if (forced === "gemini" && getGeminiKey()) return "gemini";
+  if (getAnthropicKey()) return "anthropic";
+  if (getGeminiKey()) return "gemini";
   return null;
 }
 
@@ -33,7 +34,7 @@ function textResponse(text: string, status = 200): Response {
 }
 
 function streamAnthropic(system: string, dataContext: string, messages: ChatBody["messages"]) {
-  const client = new Anthropic();
+  const client = new Anthropic({ apiKey: getAnthropicKey() });
   const stream = client.messages.stream({
     model: "claude-opus-4-8",
     max_tokens: 16000,
