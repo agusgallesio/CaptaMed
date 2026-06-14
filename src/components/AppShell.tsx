@@ -12,11 +12,15 @@ const NAV = [
   { href: "/campanas", label: "Campañas", icon: "◎" },
   { href: "/rentabilidad", label: "Rentabilidad", icon: "$" },
   { href: "/embudo", label: "Embudo", icon: "▽" },
+  { href: "/asistente", label: "Asistente IA", icon: "✦" },
 ];
 
 function ChatDrawer() {
   const [abierto, setAbierto] = useState(false);
   const { from, to } = useDateRange();
+  const pathname = usePathname();
+  // En la sección dedicada el chat ya está a pantalla completa: no mostramos el botón flotante
+  if (pathname === "/asistente") return null;
   return (
     <>
       <button
