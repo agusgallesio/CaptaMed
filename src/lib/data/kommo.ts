@@ -1,11 +1,12 @@
 import type { Lead } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
 
 /**
  * Conector a Kommo CRM (API v4).
  *
- * Variables de entorno requeridas:
+ * Credenciales (cargadas desde Integraciones o por variables de entorno):
  *  - KOMMO_BASE_URL: ej. "https://tuclinica.kommo.com"
- *  - KOMMO_ACCESS_TOKEN: token de larga duración (Settings → Integrations)
+ *  - KOMMO_ACCESS_TOKEN: token de larga duración (Ajustes → Integraciones)
  *
  * Mapeo de etapas del pipeline (los status_id varían por cuenta — verlos en
  * GET /api/v4/leads/pipelines). Se configuran como listas separadas por coma:
@@ -13,8 +14,25 @@ import type { Lead } from "@/lib/types";
  *  (142 = ganado y 143 = perdido son IDs estándar de Kommo)
  */
 
-export function isKommoConfigured(): boolean {
-  return Boolean(process.env.KOMMO_BASE_URL && process.env.KOMMO_ACCESS_TOKEN);
+export const KOMMO_KEYS = [
+  "KOMMO_BASE_URL",
+  "KOMMO_ACCESS_TOKEN",
+  "KOMMO_STATUS_CONTACTADO",
+  "KOMMO_STATUS_AGENDADO",
+  "KOMMO_STATUS_ASISTIO",
+] as const;
+
+export async function getKommoConfig(): Promise<{
+  base?: string;
+  token?: string;
+  configured: boolean;
+}> {
+  const s = await getSettings(["KOMMO_BASE_URL", "KOMMO_ACCESS_TOKEN"]);
+  return {
+    base: s.KOMMO_BASE_URL,
+    token: s.KOMMO_ACCESS_TOKEN,
+    configured: Boolean(s.KOMMO_BASE_URL && s.KOMMO_ACCESS_TOKEN),
+  };
 }
 
 interface KommoLead {
@@ -40,12 +58,14 @@ const KOMMO_WON = 142;
 const KOMMO_LOST = 143;
 
 export async function fetchKommoLeads(sinceUnix: number): Promise<Lead[]> {
-  const base = process.env.KOMMO_BASE_URL!.replace(/\/$/, "");
-  const token = process.env.KOMMO_ACCESS_TOKEN!;
+  const s = await getSettings([...KOMMO_KEYS]);
+  if (!s.KOMMO_BASE_URL || !s.KOMMO_ACCESS_TOKEN) throw new Error("Kommo no configurado");
+  const base = s.KOMMO_BASE_URL.replace(/\/$/, "");
+  const token = s.KOMMO_ACCESS_TOKEN;
 
-  const contactadoIds = parseIdList(process.env.KOMMO_STATUS_CONTACTADO);
-  const agendadoIds = parseIdList(process.env.KOMMO_STATUS_AGENDADO);
-  const asistioIds = parseIdList(process.env.KOMMO_STATUS_ASISTIO);
+  const contactadoIds = parseIdList(s.KOMMO_STATUS_CONTACTADO);
+  const agendadoIds = parseIdList(s.KOMMO_STATUS_AGENDADO);
+  const asistioIds = parseIdList(s.KOMMO_STATUS_ASISTIO);
 
   const leads: Lead[] = [];
   let page = 1;

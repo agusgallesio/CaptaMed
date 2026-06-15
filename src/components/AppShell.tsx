@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { DateRangeProvider, useDateRange } from "./DateRangeContext";
 import DateRangePicker from "./DateRangePicker";
 import ChatPanel from "./ChatPanel";
@@ -14,7 +14,25 @@ const NAV = [
   { href: "/rentabilidad", label: "Rentabilidad", icon: "$" },
   { href: "/embudo", label: "Embudo", icon: "▽" },
   { href: "/asistente", label: "Asistente IA", icon: "✦" },
+  { href: "/integraciones", label: "Integraciones", icon: "⚙" },
 ];
+
+function LogoutButton() {
+  const router = useRouter();
+  async function salir() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login");
+    router.refresh();
+  }
+  return (
+    <button
+      onClick={salir}
+      className="mx-2.5 mb-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-400 transition hover:bg-ink-700 hover:text-white"
+    >
+      Cerrar sesión
+    </button>
+  );
+}
 
 function ChatDrawer() {
   const [abierto, setAbierto] = useState(false);
@@ -83,7 +101,10 @@ function Sidebar() {
           );
         })}
       </nav>
-      <p className="px-4 py-3 text-[10px] text-slate-500">CaptaMed · Growth para clínicas</p>
+      <div className="flex flex-col">
+        <LogoutButton />
+        <p className="px-4 py-3 text-[10px] text-slate-500">CaptaMed · Growth para clínicas</p>
+      </div>
     </aside>
   );
 }

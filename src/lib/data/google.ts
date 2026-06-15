@@ -1,9 +1,10 @@
 import type { Campaign, DailyCampaignMetric } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
 
 /**
  * Conector a Google Ads API (REST, searchStream con GAQL).
  *
- * Variables de entorno requeridas:
+ * Credenciales (cargadas desde Integraciones o por variables de entorno):
  *  - GOOGLE_ADS_DEVELOPER_TOKEN: token de desarrollador (API Center)
  *  - GOOGLE_ADS_CLIENT_ID / GOOGLE_ADS_CLIENT_SECRET: credenciales OAuth2
  *  - GOOGLE_ADS_REFRESH_TOKEN: refresh token del usuario con acceso a la cuenta
@@ -11,26 +12,44 @@ import type { Campaign, DailyCampaignMetric } from "@/lib/types";
  *  - GOOGLE_ADS_LOGIN_CUSTOMER_ID: (opcional) ID del MCC si se accede vía manager
  */
 
+export const GOOGLE_KEYS = [
+  "GOOGLE_ADS_DEVELOPER_TOKEN",
+  "GOOGLE_ADS_CLIENT_ID",
+  "GOOGLE_ADS_CLIENT_SECRET",
+  "GOOGLE_ADS_REFRESH_TOKEN",
+  "GOOGLE_ADS_CUSTOMER_ID",
+  "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
+] as const;
+
 const ADS_API = "https://googleads.googleapis.com/v18";
 
-export function isGoogleConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
-      process.env.GOOGLE_ADS_CLIENT_ID &&
-      process.env.GOOGLE_ADS_CLIENT_SECRET &&
-      process.env.GOOGLE_ADS_REFRESH_TOKEN &&
-      process.env.GOOGLE_ADS_CUSTOMER_ID,
-  );
+export interface GoogleConfig {
+  values: Record<string, string | undefined>;
+  configured: boolean;
 }
 
-async function getAccessToken(): Promise<string> {
+export async function getGoogleConfig(): Promise<GoogleConfig> {
+  const s = await getSettings([...GOOGLE_KEYS]);
+  return {
+    values: s,
+    configured: Boolean(
+      s.GOOGLE_ADS_DEVELOPER_TOKEN &&
+        s.GOOGLE_ADS_CLIENT_ID &&
+        s.GOOGLE_ADS_CLIENT_SECRET &&
+        s.GOOGLE_ADS_REFRESH_TOKEN &&
+        s.GOOGLE_ADS_CUSTOMER_ID,
+    ),
+  };
+}
+
+export async function getGoogleAccessToken(cfg: Record<string, string | undefined>): Promise<string> {
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
-      refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN!,
+      client_id: cfg.GOOGLE_ADS_CLIENT_ID ?? "",
+      client_secret: cfg.GOOGLE_ADS_CLIENT_SECRET ?? "",
+      refresh_token: cfg.GOOGLE_ADS_REFRESH_TOKEN ?? "",
       grant_type: "refresh_token",
     }),
   });
@@ -49,8 +68,9 @@ export async function fetchGoogleCampaignData(
   since: string,
   until: string,
 ): Promise<{ campaigns: Campaign[]; metrics: DailyCampaignMetric[] }> {
-  const token = await getAccessToken();
-  const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID!;
+  const { values: cfg } = await getGoogleConfig();
+  const token = await getGoogleAccessToken(cfg);
+  const customerId = cfg.GOOGLE_ADS_CUSTOMER_ID!;
 
   const query = `
     SELECT campaign.id, campaign.name, campaign.status,
@@ -62,11 +82,11 @@ export async function fetchGoogleCampaignData(
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+    "developer-token": cfg.GOOGLE_ADS_DEVELOPER_TOKEN ?? "",
     "Content-Type": "application/json",
   };
-  if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
-    headers["login-customer-id"] = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
+  if (cfg.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+    headers["login-customer-id"] = cfg.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
   }
 
   const res = await fetch(`${ADS_API}/customers/${customerId}/googleAds:searchStream`, {

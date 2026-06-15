@@ -1,17 +1,29 @@
 import type { Campaign, DailyCampaignMetric } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
 
 /**
  * Conector a Meta Marketing API (Graph API).
  *
- * Variables de entorno requeridas:
+ * Credenciales (cargadas desde Integraciones o por variables de entorno):
  *  - META_ACCESS_TOKEN: token de sistema con permiso ads_read
  *  - META_AD_ACCOUNT_ID: ej. "act_1234567890"
  */
 
+export const META_KEYS = ["META_ACCESS_TOKEN", "META_AD_ACCOUNT_ID"] as const;
+
 const GRAPH = "https://graph.facebook.com/v21.0";
 
-export function isMetaConfigured(): boolean {
-  return Boolean(process.env.META_ACCESS_TOKEN && process.env.META_AD_ACCOUNT_ID);
+export async function getMetaConfig(): Promise<{
+  token?: string;
+  account?: string;
+  configured: boolean;
+}> {
+  const s = await getSettings([...META_KEYS]);
+  return {
+    token: s.META_ACCESS_TOKEN,
+    account: s.META_AD_ACCOUNT_ID,
+    configured: Boolean(s.META_ACCESS_TOKEN && s.META_AD_ACCOUNT_ID),
+  };
 }
 
 interface MetaInsightRow {
@@ -28,8 +40,8 @@ export async function fetchMetaCampaignData(
   since: string,
   until: string,
 ): Promise<{ campaigns: Campaign[]; metrics: DailyCampaignMetric[] }> {
-  const token = process.env.META_ACCESS_TOKEN!;
-  const account = process.env.META_AD_ACCOUNT_ID!;
+  const { token, account } = await getMetaConfig();
+  if (!token || !account) throw new Error("Meta no configurado");
 
   const params = new URLSearchParams({
     level: "campaign",

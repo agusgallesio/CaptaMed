@@ -12,9 +12,9 @@ import type {
   TrendPoint,
 } from "@/lib/types";
 import { getDemoDataset } from "./demo";
-import { fetchMetaCampaignData, isMetaConfigured } from "./meta";
-import { fetchGoogleCampaignData, isGoogleConfigured } from "./google";
-import { fetchKommoLeads, isKommoConfigured } from "./kommo";
+import { fetchMetaCampaignData, getMetaConfig } from "./meta";
+import { fetchGoogleCampaignData, getGoogleConfig } from "./google";
+import { fetchKommoLeads, getKommoConfig } from "./kommo";
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -42,14 +42,24 @@ interface Dataset {
 
 /** Trae el dataset crudo (real si Meta+Kommo están configurados; Google es opcional). */
 async function getDataset(desde: string, hasta: string): Promise<Dataset> {
-  if (isMetaConfigured() && isKommoConfigured()) {
-    const meta = await fetchMetaCampaignData(desde, hasta);
-    let campaigns = meta.campaigns;
-    let metrics = meta.metrics;
-    if (isGoogleConfigured()) {
-      const google = await fetchGoogleCampaignData(desde, hasta);
-      campaigns = [...campaigns, ...google.campaigns];
-      metrics = [...metrics, ...google.metrics];
+  const [meta, kommo, google] = await Promise.all([
+    getMetaConfig(),
+    getKommoConfig(),
+    getGoogleConfig(),
+  ]);
+
+  if (meta.configured && kommo.configured) {
+    const metaData = await fetchMetaCampaignData(desde, hasta);
+    let campaigns = metaData.campaigns;
+    let metrics = metaData.metrics;
+    if (google.configured) {
+      try {
+        const googleData = await fetchGoogleCampaignData(desde, hasta);
+        campaigns = [...campaigns, ...googleData.campaigns];
+        metrics = [...metrics, ...googleData.metrics];
+      } catch (e) {
+        console.error("Google Ads falló, se continúa solo con Meta:", e);
+      }
     }
     const sinceUnix = Math.floor(new Date(desde + "T00:00:00Z").getTime() / 1000);
     const leads = (await fetchKommoLeads(sinceUnix)).filter(
