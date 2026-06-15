@@ -3,11 +3,19 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-100 text-slate-800 antialiased;
+  @apply bg-slate-100 text-slate-800 antialiased transition-colors;
+}
+
+.dark body {
+  @apply bg-ink-950 text-slate-200;
 }
 
 .card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  @apply rounded-xl border border-slate-200 bg-white shadow-sm transition-colors;
+}
+
+.dark .card {
+  @apply border-slate-700 bg-ink-800 shadow-none;
 }
 
 /* Scrollbar sutil para el chat */
@@ -16,4 +24,7 @@ body {
 }
 .chat-scroll::-webkit-scrollbar-thumb {
   @apply rounded-full bg-slate-300;
+}
+.dark .chat-scroll::-webkit-scrollbar-thumb {
+  @apply bg-slate-600;
 }

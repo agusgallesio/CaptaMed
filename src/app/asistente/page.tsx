@@ -9,8 +9,8 @@ export default function Asistente() {
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-ink-900">Asistente IA</h2>
-        <p className="text-xs text-slate-500">
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-slate-100">Asistente IA</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Consultá en lenguaje natural sobre tus campañas, rentabilidad y CRM. Las respuestas usan los datos del
           período {fmtFecha(from)} al {fmtFecha(to)} (cambialo arriba a la derecha).
         </p>

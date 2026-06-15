@@ -21,9 +21,9 @@ export default function Campanas() {
   const { data, error, loading } = useMetrics();
   const [filtro, setFiltro] = useState<Filtro>("todas");
 
-  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>;
+  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>;
   if (loading || !data)
-    return <div className="flex h-64 items-center justify-center text-sm text-slate-500">Cargando campañas…</div>;
+    return <div className="flex h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">Cargando campañas…</div>;
 
   const visibles = data.campaigns.filter((c) => filtro === "todas" || c.plataforma === filtro);
   const spend = visibles.reduce((s, c) => s + c.spend, 0);
@@ -35,14 +35,16 @@ export default function Campanas() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-ink-900">Campañas por plataforma</h2>
-        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-200">
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-slate-100">Campañas por plataforma</h2>
+        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-200 dark:bg-ink-800 dark:ring-slate-700">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setFiltro(t.id)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                filtro === t.id ? "bg-brand-600 text-white" : "text-slate-600 hover:text-ink-900"
+                filtro === t.id
+                  ? "bg-brand-600 text-white"
+                  : "text-slate-600 hover:text-ink-900 dark:text-slate-300 dark:hover:text-white"
               }`}
             >
               {t.label}
@@ -69,34 +71,34 @@ export default function Campanas() {
 
       {filtro === "todas" && data.porPlataforma.length > 1 && (
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-ink-900">Meta vs Google</h3>
+          <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Meta vs Google</h3>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {data.porPlataforma.map((p) => (
-              <div key={p.plataforma} className="rounded-lg border border-slate-200 p-3">
-                <p className="mb-2 text-sm font-semibold text-ink-800">{NOMBRE_PLATAFORMA[p.plataforma]}</p>
+              <div key={p.plataforma} className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                <p className="mb-2 text-sm font-semibold text-ink-800 dark:text-slate-200">{NOMBRE_PLATAFORMA[p.plataforma]}</p>
                 <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">Inversión</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Inversión</dt>
                     <dd className="font-medium tabular-nums">{fmtMoney(p.spend)}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">Leads</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Leads</dt>
                     <dd className="font-medium tabular-nums">{fmtNum(p.leads)}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">CPL</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">CPL</dt>
                     <dd className="font-medium tabular-nums">{fmtMoney2(p.cpl)}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">Agendados</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Agendados</dt>
                     <dd className="font-medium tabular-nums">{fmtNum(p.agendados)}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">Ganados</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Ganados</dt>
                     <dd className="font-medium tabular-nums">{fmtNum(p.ganados)}</dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-wide text-slate-500">ROAS</dt>
+                    <dt className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">ROAS</dt>
                     <dd
                       className={`font-semibold tabular-nums ${
                         p.roas >= 3 ? "text-emerald-600" : p.roas >= 1 ? "text-amber-600" : "text-rose-600"
@@ -113,7 +115,7 @@ export default function Campanas() {
       )}
 
       <section className="card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-ink-900">
+        <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">
           {filtro === "todas" ? "Todas las campañas" : `Campañas de ${NOMBRE_PLATAFORMA[filtro]}`}
         </h3>
         <CampaignTable campaigns={visibles} conPlataforma={filtro === "todas"} />

@@ -11,14 +11,14 @@ import RecentLeads from "@/components/RecentLeads";
 export default function Resumen() {
   const { data, error, loading } = useMetrics();
 
-  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>;
+  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>;
   if (loading || !data)
-    return <div className="flex h-64 items-center justify-center text-sm text-slate-500">Cargando métricas…</div>;
+    return <div className="flex h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">Cargando métricas…</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-ink-900">
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-slate-100">
           Resumen del {fmtFecha(data.desde)} al {fmtFecha(data.hasta)}
         </h2>
         {data.fuente === "demo" && (
@@ -55,22 +55,22 @@ export default function Resumen() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-ink-900">Embudo comercial</h3>
+          <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Embudo comercial</h3>
           <FunnelChart stages={data.funnel} />
         </section>
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-ink-900">Leads por día</h3>
+          <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Leads por día</h3>
           <TrendChart points={data.trend} />
         </section>
       </div>
 
       <section className="card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-ink-900">Rendimiento por campaña</h3>
+        <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Rendimiento por campaña</h3>
         <CampaignTable campaigns={data.campaigns} conPlataforma />
       </section>
 
       <section className="card p-4">
-        <h3 className="mb-2 text-sm font-semibold text-ink-900">Últimos leads en el CRM</h3>
+        <h3 className="mb-2 text-sm font-semibold text-ink-900 dark:text-slate-100">Últimos leads en el CRM</h3>
         <RecentLeads leads={data.ultimosLeads} />
       </section>
     </div>

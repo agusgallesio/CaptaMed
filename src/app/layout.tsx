@@ -8,9 +8,15 @@ export const metadata: Metadata = {
     "Dashboard ejecutivo que integra Meta Ads, Google Ads y el CRM de tu clínica: leads, agendamientos, asistencia, rentabilidad y ventas, con un asistente de IA para consultar tus datos.",
 };
 
+// Aplica el tema guardado antes del primer paint para evitar parpadeo
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <AppShell>{children}</AppShell>
       </body>

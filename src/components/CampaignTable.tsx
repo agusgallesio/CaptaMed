@@ -10,13 +10,13 @@ interface Props {
 
 export default function CampaignTable({ campaigns, conPlataforma = false }: Props) {
   if (campaigns.length === 0) {
-    return <p className="py-6 text-center text-sm text-slate-400">Sin campañas en el período seleccionado.</p>;
+    return <p className="py-6 text-center text-sm text-slate-400 dark:text-slate-500">Sin campañas en el período seleccionado.</p>;
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
             <th className="py-2 pr-3 font-medium">Campaña</th>
             {conPlataforma && <th className="px-3 py-2 font-medium">Plataforma</th>}
             <th className="px-3 py-2 text-right font-medium">Inversión</th>
@@ -32,7 +32,7 @@ export default function CampaignTable({ campaigns, conPlataforma = false }: Prop
         </thead>
         <tbody>
           {campaigns.map((c) => (
-            <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+            <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-ink-700/40">
               <td className="py-2.5 pr-3">
                 <div className="flex items-center gap-2">
                   <span
@@ -41,7 +41,7 @@ export default function CampaignTable({ campaigns, conPlataforma = false }: Prop
                     }`}
                     title={c.estado === "ACTIVE" ? "Activa" : "Pausada"}
                   />
-                  <span className="font-medium text-ink-800">{c.nombre}</span>
+                  <span className="font-medium text-ink-800 dark:text-slate-200">{c.nombre}</span>
                 </div>
               </td>
               {conPlataforma && (
@@ -70,7 +70,7 @@ export default function CampaignTable({ campaigns, conPlataforma = false }: Prop
           ))}
         </tbody>
       </table>
-      <p className="pt-2 text-[11px] text-slate-400">ROAS = venta atribuida / inversión publicitaria</p>
+      <p className="pt-2 text-[11px] text-slate-400 dark:text-slate-500">ROAS = venta atribuida / inversión publicitaria</p>
     </div>
   );
 }

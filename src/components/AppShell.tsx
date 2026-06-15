@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { DateRangeProvider, useDateRange } from "./DateRangeContext";
 import DateRangePicker from "./DateRangePicker";
 import ChatPanel from "./ChatPanel";
+import ThemeToggle from "./ThemeToggle";
 
 const NAV = [
   { href: "/", label: "Resumen", icon: "▦" },
@@ -38,7 +39,7 @@ function ChatDrawer() {
             <div className="relative h-full">
               <button
                 onClick={() => setAbierto(false)}
-                className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-ink-700 dark:hover:text-slate-200"
                 aria-label="Cerrar asistente"
               >
                 ✕
@@ -115,7 +116,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <header className="border-b border-slate-200 bg-ink-800">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <p className="text-xs text-slate-300">Período analizado</p>
-            <DateRangePicker />
+            <div className="flex items-center gap-2">
+              <DateRangePicker />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-5 sm:px-6">{children}</main>

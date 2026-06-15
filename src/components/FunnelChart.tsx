@@ -9,8 +9,8 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
     <div className="space-y-2.5">
       {stages.map((s, i) => (
         <div key={s.etapa} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 text-right text-sm text-slate-600">{s.etapa}</span>
-          <div className="h-7 flex-1 rounded-md bg-slate-100">
+          <span className="w-28 shrink-0 text-right text-sm text-slate-600 dark:text-slate-300">{s.etapa}</span>
+          <div className="h-7 flex-1 rounded-md bg-slate-100 dark:bg-ink-700/60">
             <div
               className={`flex h-7 min-w-[2.5rem] items-center justify-end rounded-md pr-2 ${COLORES[i % COLORES.length]}`}
               style={{ width: `${Math.max(8, (s.cantidad / max) * 100)}%` }}
@@ -18,12 +18,12 @@ export default function FunnelChart({ stages }: { stages: FunnelStage[] }) {
               <span className="text-xs font-semibold text-white">{fmtNum(s.cantidad)}</span>
             </div>
           </div>
-          <span className="w-14 shrink-0 text-xs text-slate-500">
+          <span className="w-14 shrink-0 text-xs text-slate-500 dark:text-slate-400">
             {s.tasaConversion !== null ? fmtPct(s.tasaConversion) : ""}
           </span>
         </div>
       ))}
-      <p className="pt-1 text-right text-[11px] text-slate-400">
+      <p className="pt-1 text-right text-[11px] text-slate-400 dark:text-slate-500">
         % = conversión respecto a la etapa anterior
       </p>
     </div>

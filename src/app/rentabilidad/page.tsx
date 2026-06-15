@@ -8,16 +8,16 @@ import PlatformBadge from "@/components/PlatformBadge";
 export default function Rentabilidad() {
   const { data, error, loading } = useMetrics();
 
-  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>;
+  if (error) return <div className="card border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">{error}</div>;
   if (loading || !data)
-    return <div className="flex h-64 items-center justify-center text-sm text-slate-500">Calculando rentabilidad…</div>;
+    return <div className="flex h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">Calculando rentabilidad…</div>;
 
   const r = data.rentabilidad;
   const topCampañas = [...data.campaigns].sort((a, b) => b.revenue - a.revenue);
 
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-ink-900">Rentabilidad de la inversión publicitaria</h2>
+      <h2 className="text-sm font-semibold text-ink-900 dark:text-slate-100">Rentabilidad de la inversión publicitaria</h2>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         <KpiCard titulo="Venta total" valor={fmtMoney(r.ventaTotal)} detalle={`${fmtNum(data.kpis.ganados)} pacientes ganados`} />
@@ -49,11 +49,11 @@ export default function Rentabilidad() {
 
       {data.porPlataforma.length > 0 && (
         <section className="card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-ink-900">Rentabilidad por plataforma</h3>
+          <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Rentabilidad por plataforma</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
                   <th className="py-2 pr-3 font-medium">Plataforma</th>
                   <th className="px-3 py-2 text-right font-medium">Inversión</th>
                   <th className="px-3 py-2 text-right font-medium">Venta</th>
@@ -67,7 +67,7 @@ export default function Rentabilidad() {
                 {data.porPlataforma.map((p) => {
                   const roDinero = p.revenue - p.spend;
                   return (
-                    <tr key={p.plataforma} className="border-b border-slate-100 last:border-0">
+                    <tr key={p.plataforma} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                       <td className="py-2.5 pr-3">
                         <PlatformBadge plataforma={p.plataforma} />
                       </td>
@@ -97,11 +97,11 @@ export default function Rentabilidad() {
       )}
 
       <section className="card p-4">
-        <h3 className="mb-3 text-sm font-semibold text-ink-900">Rentabilidad por campaña</h3>
+        <h3 className="mb-3 text-sm font-semibold text-ink-900 dark:text-slate-100">Rentabilidad por campaña</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 <th className="py-2 pr-3 font-medium">Campaña</th>
                 <th className="px-3 py-2 text-right font-medium">Inversión</th>
                 <th className="px-3 py-2 text-right font-medium">Venta</th>
@@ -115,11 +115,11 @@ export default function Rentabilidad() {
               {topCampañas.map((c) => {
                 const roDinero = c.revenue - c.spend;
                 return (
-                  <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-ink-700/40">
                     <td className="py-2.5 pr-3">
                       <div className="flex items-center gap-2">
                         <PlatformBadge plataforma={c.plataforma} />
-                        <span className="font-medium text-ink-800">{c.nombre}</span>
+                        <span className="font-medium text-ink-800 dark:text-slate-200">{c.nombre}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{fmtMoney(c.spend)}</td>
